@@ -11,6 +11,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -36,22 +37,20 @@ public class MainActivity extends AppCompatActivity {
         mainBtn = findViewById(R.id.main_btn);
         resultInfo = findViewById(R.id.result_info);
 
-        mainBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (userField.getText().toString().trim().equals("")) {
-                    Toast.makeText(MainActivity.this, R.string.no_user_input, Toast.LENGTH_LONG).show();
-                } else {
-                    String city = userField.getText().toString().trim();
-                    String key = "bf53eaa7731395a2c55866f19ab16966";
-                    String url = "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + key + "&units=metric&lang=ru";
+        mainBtn.setOnClickListener(v -> {
+            if (userField.getText().toString().trim().equals("")) {
+                Toast.makeText(MainActivity.this, R.string.no_user_input, Toast.LENGTH_LONG).show();
+            } else {
+                String city = userField.getText().toString().trim();
+                String key = "bf53eaa7731395a2c55866f19ab16966";
+                String url = "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + key + "&units=metric&lang=ru";
 
-                    new GetURLData().execute(url);
-                }
+                new GetURLData().execute(url);
             }
         });
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class GetURLData extends AsyncTask<String, String, String> {
 
         protected void onPreExecute() {
@@ -73,16 +72,14 @@ public class MainActivity extends AppCompatActivity {
                 InputStream stream = connection.getInputStream();
                 reader = new BufferedReader(new InputStreamReader(stream));
 
-                StringBuffer buffer = new StringBuffer();
-                String line = "";
+                StringBuilder buffer = new StringBuilder();
+                String line;
 
                 while ((line = reader.readLine()) != null) {
                     buffer.append(line).append("\n");
 
                     return buffer.toString();
                 }
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -104,10 +101,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
+
             try {
                 JSONObject jsonObject = new JSONObject(result);
-                resultInfo.setText("Сегодня " + jsonObject.getJSONObject("weather").getString("description")
-                        + ", " + jsonObject.getJSONObject("main").getDouble("temp") + " градуса");
+
+                resultInfo.setText("Сегодня " + jsonObject.getJSONArray("weather").getJSONObject(0).getString("description") + ",\n"
+                        + jsonObject.getJSONObject("main").getDouble("temp_min")
+                        + " - " + jsonObject.getJSONObject("main").getDouble("temp_max") + " градусов Цельсия,\n"
+                        + "скорость ветра "  + jsonObject.getJSONObject("wind").getDouble("speed") + " м/с\n");
             } catch (JSONException e) {
                 e.printStackTrace();
             }
